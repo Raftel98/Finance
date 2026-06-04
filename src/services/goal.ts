@@ -45,7 +45,7 @@ export async function computeGoalProgress(
     }
 
     case "SAVINGS": {
-      const createdAt = (goal as any).createdAt ?? new Date(0);
+      const createdAt = goal.createdAt ?? new Date(0);
       const income = await prisma.transaction.aggregate({
         where: { userId, type: "INCOME", date: { gte: createdAt } },
         _sum: { baseAmount: true },
