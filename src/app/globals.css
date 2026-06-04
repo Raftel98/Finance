@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 10% 10%;
+    --primary: 220 10% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 5% 96%;
+    --secondary-foreground: 220 10% 10%;
+    --muted: 220 5% 96%;
+    --muted-foreground: 220 5% 45%;
+    --accent: 220 5% 94%;
+    --accent-foreground: 220 10% 10%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 158 82% 36%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 90% 42%;
+    --warning-foreground: 0 0% 98%;
+    --border: 220 10% 88%;
+    --input: 220 10% 88%;
+    --ring: 220 10% 10%;
+    --radius: 0.5rem;
+
+    /* Custom semantic colors */
+    --color-income: 158 82% 36%;
+    --color-expense: 0 72% 58%;
+    --color-neutral: 220 5% 45%;
+  }
+
+  .dark {
+    --background: 222 15% 9%;
+    --foreground: 220 10% 92%;
+    --card: 222 15% 12%;
+    --card-foreground: 220 10% 92%;
+    --popover: 222 15% 12%;
+    --popover-foreground: 220 10% 92%;
+    --primary: 220 10% 92%;
+    --primary-foreground: 222 15% 9%;
+    --secondary: 222 15% 16%;
+    --secondary-foreground: 220 10% 92%;
+    --muted: 222 15% 16%;
+    --muted-foreground: 220 5% 55%;
+    --accent: 222 15% 18%;
+    --accent-foreground: 220 10% 92%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 158 70% 40%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 85% 50%;
+    --warning-foreground: 0 0% 98%;
+    --border: 222 15% 20%;
+    --input: 222 15% 20%;
+    --ring: 220 10% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 2px;
+}
+
+/* Number formatting */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

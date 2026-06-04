@@ -1,0 +1,554 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum TransactionSource {
+  MANUAL
+  AI_EXTRACTED
+  BANK_SYNC
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum AssetType {
+  CASH
+  CHECKING
+  SAVINGS
+  STOCKS
+  ETF
+  CRYPTO
+  REAL_ESTATE
+  VEHICLE
+  OTHER
+}
+
+enum LiabilityType {
+  CREDIT_CARD
+  PERSONAL_LOAN
+  MORTGAGE
+  VEHICLE_LOAN
+  STUDENT_LOAN
+  OTHER
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum RecurringType {
+  INCOME
+  EXPENSE
+}
+
+enum BudgetPeriod {
+  MONTHLY
+  ANNUAL
+}
+
+enum GoalTrackingType {
+  NET_WORTH
+  SAVINGS
+  ASSET
+  MANUAL
+}
+
+enum ForecastScenarioType {
+  BASE
+  OPTIMISTIC
+  CONSERVATIVE
+  CUSTOM
+}
+
+enum ScenarioAdjustmentType {
+  INCOME_CHANGE
+  EXPENSE_CHANGE
+  NEW_EXPENSE
+  ASSET_CHANGE
+  DEBT_CHANGE
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  EXTRACTED
+  FAILED
+  SAVED
+}
+
+enum DocumentType {
+  BANK_STATEMENT
+  CARD_STATEMENT
+  RECEIPT
+  INVOICE
+  OTHER
+}
+
+enum ExtractionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ReportType {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  CUSTOM
+}
+
+enum ReportFormat {
+  PDF
+  CSV
+  XLSX
+}
+
+enum ReportStatus {
+  GENERATING
+  READY
+  FAILED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+  AI_PROCESS
+}
+
+// ─── USERS & AUTH ────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  baseCurrency String   @default("COP")
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions          Session[]
+  categories        Category[]
+  transactions      Transaction[]
+  recurringRules    RecurringRule[]
+  assets            Asset[]
+  creditCards       CreditCard[]
+  liabilities       Liability[]
+  budgets           Budget[]
+  netWorthSnapshots NetWorthSnapshot[]
+  financialGoals    FinancialGoal[]
+  forecastScenarios ForecastScenario[]
+  exchangeRates     ExchangeRate[]
+  uploadedDocuments UploadedDocument[]
+  reports           Report[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ─── CATEGORIES ──────────────────────────────────────────────────────────────
+
+model Category {
+  id       String       @id @default(cuid())
+  userId   String?
+  name     String
+  type     CategoryType
+  icon     String?
+  color    String?
+  parentId String?
+  isSystem Boolean      @default(false)
+  createdAt DateTime    @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     Category[]    @relation("CategoryHierarchy")
+  transactions Transaction[]
+  budgets      Budget[]
+  recurringRules RecurringRule[]
+
+  @@map("categories")
+}
+
+// ─── TRANSACTIONS ─────────────────────────────────────────────────────────────
+
+model Transaction {
+  id                 String            @id @default(cuid())
+  userId             String
+  type               TransactionType
+  amount             Decimal           @db.Decimal(18, 4)
+  currency           String
+  baseAmount         Decimal?          @db.Decimal(18, 4)
+  exchangeRate       Decimal?          @db.Decimal(18, 8)
+  exchangeRateDate   DateTime?         @db.Date
+  date               DateTime          @db.Date
+  categoryId         String?
+  description        String?
+  merchant           String?
+  creditCardId       String?
+  accountId          String?
+  isRecurring        Boolean           @default(false)
+  recurringRuleId    String?
+  source             TransactionSource @default(MANUAL)
+  uploadedDocumentId String?
+  notes              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category         Category?         @relation(fields: [categoryId], references: [id])
+  creditCard       CreditCard?       @relation(fields: [creditCardId], references: [id])
+  account          Asset?            @relation(fields: [accountId], references: [id])
+  recurringRule    RecurringRule?    @relation(fields: [recurringRuleId], references: [id])
+  uploadedDocument UploadedDocument? @relation(fields: [uploadedDocumentId], references: [id])
+
+  @@index([userId, date])
+  @@index([userId, type])
+  @@index([userId, categoryId])
+  @@map("transactions")
+}
+
+// ─── RECURRING RULES ─────────────────────────────────────────────────────────
+
+model RecurringRule {
+  id             String             @id @default(cuid())
+  userId         String
+  name           String
+  type           RecurringType
+  amount         Decimal            @db.Decimal(18, 4)
+  currency       String
+  categoryId     String?
+  frequency      RecurringFrequency
+  startDate      DateTime           @db.Date
+  endDate        DateTime?          @db.Date
+  dayOfMonth     Int?
+  dayOfWeek      Int?
+  isActive       Boolean            @default(true)
+  nextOccurrence DateTime           @db.Date
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  transactions Transaction[]
+
+  @@map("recurring_rules")
+}
+
+// ─── ASSETS ──────────────────────────────────────────────────────────────────
+
+model Asset {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  type          AssetType
+  currency      String
+  currentValue  Decimal   @db.Decimal(18, 4)
+  purchaseValue Decimal?  @db.Decimal(18, 4)
+  purchaseDate  DateTime? @db.Date
+  institution   String?
+  accountNumber String?
+  notes         String?
+  isLiquid      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  goals        FinancialGoal[]
+
+  @@map("assets")
+}
+
+// ─── CREDIT CARDS ────────────────────────────────────────────────────────────
+
+model CreditCard {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  issuer      String?
+  creditLimit Decimal  @db.Decimal(18, 4)
+  currency    String
+  closingDay  Int
+  paymentDay  Int
+  color       String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  liability    Liability?
+
+  @@map("credit_cards")
+}
+
+// ─── LIABILITIES ─────────────────────────────────────────────────────────────
+
+model Liability {
+  id             String        @id @default(cuid())
+  userId         String
+  name           String
+  type           LiabilityType
+  currency       String
+  balance        Decimal       @db.Decimal(18, 4)
+  interestRate   Decimal?      @db.Decimal(8, 4)
+  minimumPayment Decimal?      @db.Decimal(18, 4)
+  dueDate        DateTime?     @db.Date
+  creditCardId   String?       @unique
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard CreditCard? @relation(fields: [creditCardId], references: [id])
+
+  @@map("liabilities")
+}
+
+// ─── BUDGETS ─────────────────────────────────────────────────────────────────
+
+model Budget {
+  id              String       @id @default(cuid())
+  userId          String
+  categoryId      String
+  period          BudgetPeriod
+  year            Int
+  month           Int?
+  projectedAmount Decimal      @db.Decimal(18, 4)
+  currency        String
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  Category        @relation(fields: [categoryId], references: [id])
+  forecasts BudgetForecast[]
+
+  @@unique([userId, categoryId, period, year, month])
+  @@map("budgets")
+}
+
+model BudgetForecast {
+  id             String   @id @default(cuid())
+  budgetId       String
+  forecastAmount Decimal  @db.Decimal(18, 4)
+  forecastDate   DateTime @db.Date
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@map("budget_forecasts")
+}
+
+// ─── NET WORTH SNAPSHOTS ─────────────────────────────────────────────────────
+
+model NetWorthSnapshot {
+  id                  String   @id @default(cuid())
+  userId              String
+  snapshotDate        DateTime @db.Date
+  totalAssets         Decimal  @db.Decimal(18, 4)
+  totalLiabilities    Decimal  @db.Decimal(18, 4)
+  netWorth            Decimal  @db.Decimal(18, 4)
+  currency            String
+  assetBreakdown      Json?
+  liabilityBreakdown  Json?
+  currencyBreakdown   Json?
+  createdAt           DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, snapshotDate])
+  @@index([userId, snapshotDate])
+  @@map("net_worth_snapshots")
+}
+
+// ─── FINANCIAL GOALS ─────────────────────────────────────────────────────────
+
+model FinancialGoal {
+  id              String           @id @default(cuid())
+  userId          String
+  name            String
+  targetAmount    Decimal          @db.Decimal(18, 4)
+  currency        String
+  deadline        DateTime?        @db.Date
+  currentAmount   Decimal          @default(0) @db.Decimal(18, 4)
+  trackingType    GoalTrackingType
+  assetId         String?
+  notes           String?
+  isCompleted     Boolean          @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset Asset? @relation(fields: [assetId], references: [id])
+
+  @@map("financial_goals")
+}
+
+// ─── FORECAST SCENARIOS ──────────────────────────────────────────────────────
+
+model ForecastScenario {
+  id        String               @id @default(cuid())
+  userId    String
+  name      String
+  type      ForecastScenarioType
+  isActive  Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adjustments ScenarioAdjustment[]
+
+  @@map("forecast_scenarios")
+}
+
+model ScenarioAdjustment {
+  id             String                 @id @default(cuid())
+  scenarioId     String
+  description    String
+  adjustmentType ScenarioAdjustmentType
+  impactAmount   Decimal?               @db.Decimal(18, 4)
+  impactPercent  Decimal?               @db.Decimal(8, 4)
+  startDate      DateTime               @db.Date
+  endDate        DateTime?              @db.Date
+  currency       String?
+  createdAt      DateTime               @default(now())
+
+  scenario ForecastScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@map("scenario_adjustments")
+}
+
+// ─── EXCHANGE RATES ──────────────────────────────────────────────────────────
+
+model ExchangeRate {
+  id             String   @id @default(cuid())
+  userId         String?
+  baseCurrency   String
+  targetCurrency String
+  rate           Decimal  @db.Decimal(18, 8)
+  effectiveDate  DateTime @db.Date
+  source         String   @default("API")
+  createdAt      DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([baseCurrency, targetCurrency, effectiveDate])
+  @@index([baseCurrency, targetCurrency, effectiveDate])
+  @@map("exchange_rates")
+}
+
+// ─── AI DOCUMENT PROCESSING ──────────────────────────────────────────────────
+
+model UploadedDocument {
+  id           String         @id @default(cuid())
+  userId       String
+  filename     String
+  mimeType     String
+  fileSize     Int
+  storageKey   String
+  status       DocumentStatus @default(UPLOADED)
+  documentType DocumentType   @default(OTHER)
+  uploadedAt   DateTime       @default(now())
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  extractions  AiExtraction[]
+  transactions Transaction[]
+
+  @@map("uploaded_documents")
+}
+
+model AiExtraction {
+  id                    String           @id @default(cuid())
+  documentId            String
+  rawResponse           Json?
+  extractedTransactions Json[]
+  processingModel       String?
+  tokensUsed            Int?
+  processingMs          Int?
+  status                ExtractionStatus @default(PENDING)
+  errorMessage          String?
+  createdAt             DateTime         @default(now())
+
+  document UploadedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("ai_extractions")
+}
+
+// ─── REPORTS ─────────────────────────────────────────────────────────────────
+
+model Report {
+  id          String       @id @default(cuid())
+  userId      String
+  type        ReportType
+  periodStart DateTime     @db.Date
+  periodEnd   DateTime     @db.Date
+  format      ReportFormat
+  storageKey  String?
+  status      ReportStatus @default(GENERATING)
+  createdAt   DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+// ─── AUDIT LOGS ──────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String
+  action    AuditAction
+  entity    String?
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
