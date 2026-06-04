@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Budgets" };
 
 export default async function BudgetsPage() {
   const session = await auth();
-  const baseCurrency = (session!.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session!.user.baseCurrency ?? "COP";
 
   return (
     <PageShell title="Budgets">

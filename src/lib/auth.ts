@@ -1,12 +1,10 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import argon2 from "argon2";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations/auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   pages: {
     signIn: "/auth/login",
@@ -15,16 +13,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.baseCurrency = (user as any).baseCurrency;
+        token.id = user.id ?? token.sub;
+        token.baseCurrency = (user as { baseCurrency?: string }).baseCurrency;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        (session.user as any).baseCurrency = token.baseCurrency;
-      }
+      session.user.id = (token.id ?? token.sub) as string;
+      session.user.baseCurrency = token.baseCurrency ?? "COP";
       return session;
     },
   },

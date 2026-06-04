@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user!.id!;
-  const baseCurrency = (session.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session.user.baseCurrency ?? "COP";
 
   const { searchParams } = request.nextUrl;
   const year = searchParams.get("year") ? Number(searchParams.get("year")) : new Date().getFullYear();

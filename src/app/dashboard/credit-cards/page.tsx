@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Credit Cards" };
 export default async function CreditCardsPage() {
   const session = await auth();
   const userId = session!.user!.id!;
-  const baseCurrency = (session!.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session!.user.baseCurrency ?? "COP";
 
   const cards = await prisma.creditCard.findMany({
     where: { userId },

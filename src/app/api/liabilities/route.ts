@@ -8,7 +8,7 @@ export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user!.id!;
-  const baseCurrency = (session.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session.user.baseCurrency ?? "COP";
 
   const [liabilities, creditCards] = await Promise.all([
     prisma.liability.findMany({

@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session!.user!.id!;
-  const currency = (session!.user as any).baseCurrency ?? "COP";
+  const currency = session!.user.baseCurrency ?? "COP";
 
   // Latest snapshot
   const latestSnapshot = await prisma.netWorthSnapshot.findFirst({

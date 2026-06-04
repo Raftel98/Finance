@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   const session = await auth();
-  const user = session!.user as any;
+  const user = session!.user;
   return (
     <PageShell title="Settings">
       <SettingsClient

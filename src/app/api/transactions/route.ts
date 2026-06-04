@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const baseCurrency = (session.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session.user.baseCurrency ?? "COP";
 
   const transaction = await createTransaction(session.user!.id!, baseCurrency, parsed.data);
 

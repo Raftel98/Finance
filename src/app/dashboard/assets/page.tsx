@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Assets" };
 export default async function AssetsPage() {
   const session = await auth();
   const userId = session!.user!.id!;
-  const baseCurrency = (session!.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session!.user.baseCurrency ?? "COP";
 
   const assets = await prisma.asset.findMany({
     where: { userId },

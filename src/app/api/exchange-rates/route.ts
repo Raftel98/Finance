@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const base = req.nextUrl.searchParams.get("base") ??
-    (session.user as any).baseCurrency ?? "COP";
+    session.user.baseCurrency ?? "COP";
 
   const rates = await getLatestRates(base);
   return NextResponse.json({ base, rates });

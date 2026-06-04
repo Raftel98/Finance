@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Net Worth" };
 export default async function NetWorthPage() {
   const session = await auth();
   const userId = session!.user!.id!;
-  const baseCurrency = (session!.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session!.user.baseCurrency ?? "COP";
 
   const history = await getNetWorthHistory(userId, 12);
 

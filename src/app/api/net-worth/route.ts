@@ -6,7 +6,7 @@ export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user!.id!;
-  const baseCurrency = (session.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session.user.baseCurrency ?? "COP";
 
   const history = await getNetWorthHistory(userId, 12);
 
@@ -47,7 +47,7 @@ export async function POST() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user!.id!;
-  const baseCurrency = (session.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session.user.baseCurrency ?? "COP";
 
   const snapshot = await createSnapshot(userId, baseCurrency);
   return NextResponse.json(

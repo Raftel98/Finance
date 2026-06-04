@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Liabilities" };
 export default async function LiabilitiesPage() {
   const session = await auth();
   const userId = session!.user!.id!;
-  const baseCurrency = (session!.user as any).baseCurrency ?? "COP";
+  const baseCurrency = session!.user.baseCurrency ?? "COP";
 
   const [liabilities, creditCards] = await Promise.all([
     prisma.liability.findMany({
